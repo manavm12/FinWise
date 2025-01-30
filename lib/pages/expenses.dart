@@ -34,9 +34,7 @@ class _ExpensePageState extends State<ExpensePage> {
   void addExpenseFromRepeated(int index, bool isActive) {
     setState(() {
       repeatedExpenseData[index]["isActive"] = isActive;
-
       if (isActive) { 
-        // Only add if checked
         var expense = repeatedExpenseData[index];
         expenseList.add(
           ExpenseItem(

@@ -1,3 +1,4 @@
+import 'package:finwise/pages/statistics.dart';
 import 'package:finwise/styles/blueText.dart';
 import 'package:finwise/widgets/featureButton.dart';
 import 'package:finwise/widgets/setMonthlyBudgetDialog.dart';
@@ -99,7 +100,13 @@ class _HomeState extends State<Home> {
                       });
                     }
                   }),
-                  FeatureButton(Icons.analytics, "See Insights", () {}),
+                  FeatureButton(Icons.analytics, "Statistics", () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context)=>StatisticsPage(
+                      monthlyBudget: monthlyBudget, 
+                      remainingBudget: remainingBudget, 
+                      avgDailyBudget: avgDailyBudget, 
+                      spendingData: [12.5,8.0,13.5,16.8,20.5])));
+                  }),
                   FeatureButton(Icons.access_time, "History", () {}),
                   FeatureButton(Icons.coffee_outlined, "Add Widgets", () {}),
                   FeatureButton(Icons.money, "Manage Card", () {}),

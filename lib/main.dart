@@ -7,7 +7,7 @@ void main() {
     initialRoute: '/home',
     routes: {
       '/home': (context)=>Home(),
-      '/expenses': (context)=>ExpensePage()
+      '/expenses': (context)=>ExpensePage(),
     }
   ));
 }
