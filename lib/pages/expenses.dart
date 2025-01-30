@@ -1,3 +1,4 @@
+import 'package:finwise/widgets/addExpenseDialog.dart';
 import 'package:flutter/material.dart';
 import 'package:finwise/classes/expenseItem.dart';
 import 'package:finwise/classes/repeatedExpenseItem.dart';
@@ -135,8 +136,31 @@ class _ExpensePageState extends State<ExpensePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Add Expense logic placeholder
+        onPressed: () async{
+          final result = await showDialog(
+            context: context, 
+            builder: (context){
+              return AddExpense();
+            });
+
+          final String roundedAmount = double.parse(result["amount"]).toStringAsFixed(2);
+          setState(() {
+            expenseList.add(
+              ExpenseItem(
+                description: result["description"], 
+                amount: roundedAmount, 
+                category: result["category"])
+            );
+          });
+
+          if(result["isRepeatedExpense"]){
+            setState(() {
+              repeatedExpenseData.add(
+                {"description": "${result["description"]}", "amount":roundedAmount, "category": "${result["category"]}", "isActive": false}
+              );
+            });
+          }
+
         },
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add, color: Colors.white),
