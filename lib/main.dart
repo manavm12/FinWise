@@ -1,8 +1,13 @@
-import 'package:finwise/home.dart';
+import 'package:finwise/pages/expenses.dart';
+import 'package:finwise/pages/home.dart';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MaterialApp(
-    home:Home()
+  runApp(MaterialApp(
+    initialRoute: '/home',
+    routes: {
+      '/home': (context)=>Home(),
+      '/expenses': (context)=>ExpensePage()
+    }
   ));
 }
