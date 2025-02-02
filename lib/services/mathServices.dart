@@ -22,5 +22,20 @@ class MathService {
 
     return remainingBudget / daysLeft;
   }
+
+    double calculateMean(List<double> data) {
+    if (data.isEmpty) return 0.0;
+    return data.reduce((a, b) => a + b) / data.length;
+  }
+
+  double calculateLowest(List<double> data) {
+    if (data.isEmpty) return 0.0;
+    return data.reduce((a, b) => a < b ? a : b);
+  }
+
+  double calculateHighest(List<double> data) {
+    if (data.isEmpty) return 0.0;
+    return data.reduce((a, b) => a > b ? a : b);
+  }
   
 }

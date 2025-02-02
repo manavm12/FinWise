@@ -1,3 +1,5 @@
+import 'package:finwise/services/mathServices.dart';
+import 'package:finwise/widgets/statisticsRow.dart';
 import 'package:flutter/material.dart';
 
 class StatisticsPage extends StatelessWidget {
@@ -37,9 +39,9 @@ class StatisticsPage extends StatelessWidget {
             const SizedBox(height: 16),
             buildStatisticRow("Monthly Budget", "\$${monthlyBudget.toStringAsFixed(2)}"),
             buildStatisticRow("Remaining Budget", "\$${remainingBudget.toStringAsFixed(2)}"),
-            buildStatisticRow("Mean Spend", "\$${calculateMean(spendingData).toStringAsFixed(2)}"),
-            buildStatisticRow("Lowest Spend", "\$${calculateLowest(spendingData).toStringAsFixed(2)}"),
-            buildStatisticRow("Highest Spend", "\$${calculateHighest(spendingData).toStringAsFixed(2)}"),
+            buildStatisticRow("Mean Spend", "\$${MathService().calculateMean(spendingData).toStringAsFixed(2)}"),
+            buildStatisticRow("Lowest Spend", "\$${MathService().calculateLowest(spendingData).toStringAsFixed(2)}"),
+            buildStatisticRow("Highest Spend", "\$${MathService().calculateHighest(spendingData).toStringAsFixed(2)}"),
             buildStatisticRow("Daily Budget", "\$${avgDailyBudget.toStringAsFixed(2)}"),
             const SizedBox(height: 16),
             const Text(
@@ -102,39 +104,5 @@ class StatisticsPage extends StatelessWidget {
         type: BottomNavigationBarType.fixed,
       ),
     );
-  }
-
-  Widget buildStatisticRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
-  double calculateMean(List<double> data) {
-    if (data.isEmpty) return 0.0;
-    return data.reduce((a, b) => a + b) / data.length;
-  }
-
-  double calculateLowest(List<double> data) {
-    if (data.isEmpty) return 0.0;
-    return data.reduce((a, b) => a < b ? a : b);
-  }
-
-  double calculateHighest(List<double> data) {
-    if (data.isEmpty) return 0.0;
-    return data.reduce((a, b) => a > b ? a : b);
   }
 }
