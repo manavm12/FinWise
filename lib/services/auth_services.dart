@@ -24,7 +24,12 @@ class AuthService {
       body: jsonEncode({"email": email, "password": password}),
     );
 
-    return jsonDecode(response.body);
+    final data = jsonDecode(response.body);
+    if (data.containsKey("token")) {
+      await saveToken(data["token"]);
+    }
+
+    return data;
   }
 
   // Save Token
@@ -37,6 +42,18 @@ class AuthService {
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString("token");
+  }
+
+  // 🚀 New: Get Auth Headers
+  static Future<Map<String, String>> getAuthHeaders() async {
+    String? token = await getToken();
+    if (token == null) {
+      throw Exception("No authentication token found");
+    }
+    return {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    };
   }
 
   // Logout

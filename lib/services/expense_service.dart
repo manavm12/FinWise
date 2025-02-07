@@ -1,0 +1,145 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'auth_services.dart';
+
+class ExpenseService {
+  static const String baseUrl = "http://10.0.2.2:3000/api/expenses";
+  static const String userBaseUrl = "http://10.0.2.2:3000/api/users";
+
+  // Fetch all expenses for the logged-in user
+  static Future<List<Map<String, dynamic>>> fetchExpenses() async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final response = await http.get(Uri.parse("$baseUrl/"), headers: headers);
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        throw Exception("Failed to fetch expenses");
+      }
+    } catch (error) {
+      print("Error fetching expenses: $error");
+      return [];
+    }
+  }
+
+  // Add a new expense
+  static Future<Map<String, dynamic>?> addExpense(String description, String category, double amount) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final response = await http.post(
+        Uri.parse("$baseUrl/add"),
+        headers: headers,
+        body: jsonEncode({
+          "description": description,
+          "category": category,
+          "amount": amount,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        print("Error adding expense: ${response.body}");
+        return null;
+      }
+    } catch (error) {
+      print("Error: $error");
+      return null;
+    }
+  }
+
+  // Fetch repeated expenses for the logged-in user
+  static Future<List<Map<String, dynamic>>> fetchRepeatedExpenses() async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("$userBaseUrl/repeated-expenses"),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        throw Exception("Failed to fetch repeated expenses");
+      }
+    } catch (error) {
+      print("Error fetching repeated expenses: $error");
+      return [];
+    }
+  }
+
+  // Add a new repeated expense
+  static Future<void> addRepeatedExpense(String description, String category, double amount) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      await http.post(
+        Uri.parse("$userBaseUrl/add-repeated-expense"),
+        headers: headers,
+        body: jsonEncode({
+          "description": description,
+          "category": category,
+          "amount": amount,
+        }),
+      );
+    } catch (error) {
+      print("Error adding repeated expense: $error");
+    }
+  }
+
+  // Toggle repeated expense activation (Mark it as used today)
+  static Future<void> toggleRepeatedExpense(int index) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final response = await http.put(
+        Uri.parse("$userBaseUrl/toggle-repeated-expense/$index"),
+        headers: headers,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception("Failed to toggle repeated expense");
+      }
+    } catch (error) {
+      print("Error toggling repeated expense: $error");
+    }
+  }
+
+  // Fetch Monthly Budget
+  static Future<double> fetchMonthlyBudget() async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final response = await http.get(
+        Uri.parse("http://10.0.2.2:3000/api/users/budget"), 
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data["monthlyBudget"].toDouble(); // Ensure it's double
+      } else {
+        throw Exception("Failed to fetch monthly budget");
+      }
+    } catch (error) {
+      print("Error fetching monthly budget: $error");
+      return 0.0; // Default if error occurs
+    }
+  }
+
+  // Update Monthly Budget
+  static Future<void> updateMonthlyBudget(double monthlyBudget) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final response = await http.put(
+        Uri.parse("http://10.0.2.2:3000/api/users/update-budget"),
+        headers: headers,
+        body: jsonEncode({"monthlyBudget": monthlyBudget}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception("Failed to update monthly budget");
+      }
+    } catch (error) {
+      print("Error updating monthly budget: $error");
+    }
+  }
+}

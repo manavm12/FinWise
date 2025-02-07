@@ -1,5 +1,6 @@
-import 'package:finwise/widgets/addExpenseDialog.dart';
 import 'package:flutter/material.dart';
+import 'package:finwise/services/expense_service.dart';
+import 'package:finwise/widgets/addExpenseDialog.dart';
 import 'package:finwise/classes/expenseItem.dart';
 import 'package:finwise/classes/repeatedExpenseItem.dart';
 import 'package:finwise/services/mathServices.dart';
@@ -12,39 +13,66 @@ class ExpensePage extends StatefulWidget {
 }
 
 class _ExpensePageState extends State<ExpensePage> {
-  List<ExpenseItem> expenseList = [
-    ExpenseItem(description: "Lunch - Bismillah", amount: "5.00", category: "Food"),
-    ExpenseItem(description: "Dinner - Subway", amount: "7.00", category: "Food"),
-    ExpenseItem(description: "Ice Cream", amount: "3.00", category: "Food"),
-  ];
-
+  List<ExpenseItem> expenseList = [];
   List<Map<String, dynamic>> repeatedExpenseData = [];
 
   @override
   void initState() {
     super.initState();
-    repeatedExpenseData = [
-      {"description": "Subscription", "amount": "3.00", "category": "Entertainment", "isActive": false},
-      {"description": "Milk", "amount": "6.45", "category": "Groceries", "isActive": false},
-      {"description": "Gym Membership", "amount": "30.00", "category": "Health", "isActive": false},
-    ];
+    _loadExpenses(); // Fetch normal expenses
+    _loadRepeatedExpenses(); // Fetch repeated expenses
   }
 
-  // Function to add repeated expenses to Today's Spending
-  void addExpenseFromRepeated(int index, bool isActive) {
+  // Fetch expenses from the backend
+  void _loadExpenses() async {
+    final fetchedExpenses = await ExpenseService.fetchExpenses();
+    setState(() {
+      expenseList = fetchedExpenses.map((expense) {
+        return ExpenseItem(
+          description: expense["description"],
+          amount: expense["amount"].toStringAsFixed(2),
+          category: expense["category"],
+        );
+      }).toList();
+    });
+  }
+
+  // Fetch repeated expenses from the backend
+  void _loadRepeatedExpenses() async {
+    final fetchedRepeatedExpenses = await ExpenseService.fetchRepeatedExpenses();
+    setState(() {
+      repeatedExpenseData = fetchedRepeatedExpenses;
+    });
+  }
+
+  // Toggle a repeated expense's active state
+  void addExpenseFromRepeated(int index, bool isActive) async {
     setState(() {
       repeatedExpenseData[index]["isActive"] = isActive;
-      if (isActive) { 
-        var expense = repeatedExpenseData[index];
+    });
+
+    // Update the backend
+    await ExpenseService.toggleRepeatedExpense(index);
+
+    if (isActive) {
+      // Add the repeated expense to today's spending list
+      setState(() {
         expenseList.add(
           ExpenseItem(
-            description: expense["description"],
-            amount: expense["amount"],
-            category: expense["category"],
+            description: repeatedExpenseData[index]["description"],
+            amount: repeatedExpenseData[index]["amount"].toString(),
+            category: repeatedExpenseData[index]["category"],
           ),
         );
-      }
-    });
+      });
+    } else {
+      // Remove from today's spending if unchecked
+      setState(() {
+        expenseList.removeWhere(
+          (expense) => expense.description == repeatedExpenseData[index]["description"]
+        );
+      });
+    }
   }
 
   @override
@@ -61,11 +89,7 @@ class _ExpensePageState extends State<ExpensePage> {
           children: [
             const Text(
               "Today's Spending",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
             ),
             const SizedBox(height: 10),
             Expanded(
@@ -73,43 +97,32 @@ class _ExpensePageState extends State<ExpensePage> {
               child: ListView.builder(
                 itemCount: expenseList.length,
                 itemBuilder: (context, index) {
-                  return expenseList[index];
+                  return ExpenseItem(
+                    description: expenseList[index].description,
+                    amount: double.parse(expenseList[index].amount).toStringAsFixed(2), // ✅ 2dp fix
+                    category: expenseList[index].category,
+                  );
                 },
               ),
             ),
-            const Divider(
-              thickness: 2,
-              color: Colors.blue,
-            ),
+            const Divider(thickness: 2, color: Colors.blue),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   "Total",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
                 ),
                 Text(
                   "\$${MathService.calculateTotal(expenseList)}",
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             const Text(
               "Repeated Expenses",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
             ),
             const SizedBox(height: 10),
             Expanded(
@@ -121,7 +134,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   itemBuilder: (context, index) {
                     return RepeatedExpenseItem(
                       description: repeatedExpenseData[index]["description"],
-                      amount: repeatedExpenseData[index]["amount"],
+                      amount: double.parse(repeatedExpenseData[index]["amount"].toString()).toStringAsFixed(2),
                       category: repeatedExpenseData[index]["category"],
                       isActive: repeatedExpenseData[index]["isActive"],
                       onToggleActive: (bool isActive) => addExpenseFromRepeated(index, isActive),
@@ -134,31 +147,45 @@ class _ExpensePageState extends State<ExpensePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async{
+        onPressed: () async {
           final result = await showDialog(
-            context: context, 
-            builder: (context){
-              return AddExpense();
-            });
+            context: context,
+            builder: (context) => AddExpense(),
+          );
 
-          final String roundedAmount = double.parse(result["amount"]).toStringAsFixed(2);
-          setState(() {
-            expenseList.add(
-              ExpenseItem(
-                description: result["description"], 
-                amount: roundedAmount, 
-                category: result["category"])
+          if (result != null) {
+            final String roundedAmount = double.parse(result["amount"]).toStringAsFixed(2);
+
+            // Send expense to backend
+            final newExpense = await ExpenseService.addExpense(
+              result["description"],
+              result["category"],
+              double.parse(result["amount"]),
             );
-          });
 
-          if(result["isRepeatedExpense"]){
-            setState(() {
-              repeatedExpenseData.add(
-                {"description": "${result["description"]}", "amount":roundedAmount, "category": "${result["category"]}", "isActive": false}
-              );
-            });
+            if (newExpense != null) {
+              setState(() {
+                expenseList.add(
+                  ExpenseItem(
+                    description: result["description"],
+                    amount: roundedAmount,
+                    category: result["category"],
+                  ),
+                );
+              });
+
+              if (result["isRepeatedExpense"]) {
+                // Save repeated expense to MongoDB
+                await ExpenseService.addRepeatedExpense(
+                  result["description"],
+                  result["category"],
+                  double.parse(result["amount"]),
+                );
+                
+                _loadRepeatedExpenses(); // Refresh UI
+              }
+            }
           }
-
         },
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add, color: Colors.white),
@@ -171,22 +198,10 @@ class _ExpensePageState extends State<ExpensePage> {
           }
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Home",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt),
-            label: "Expense",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.collections),
-            label: "Collections",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: "Settings",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: "Expense"),
+          BottomNavigationBarItem(icon: Icon(Icons.collections), label: "Collections"),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"),
         ],
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,

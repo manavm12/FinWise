@@ -4,6 +4,7 @@ import 'package:finwise/widgets/featureButton.dart';
 import 'package:finwise/widgets/setMonthlyBudgetDialog.dart';
 import 'package:finwise/services/mathServices.dart';
 import 'package:flutter/material.dart';
+import 'package:finwise/services/expense_service.dart';
 import 'package:intl/intl.dart';
 
 class Home extends StatefulWidget {
@@ -15,8 +16,8 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   late String formattedDate;
-  late double monthlyBudget;
-  late double budgetUsed;
+  double monthlyBudget = 0.0;
+  double budgetUsed = 0.0;
   int selectedIndex = 0;
 
   @override
@@ -24,14 +25,21 @@ class _HomeState extends State<Home> {
     super.initState();
     DateTime now = DateTime.now();
     formattedDate = DateFormat('d MMMM').format(now);
-    monthlyBudget = 0.0;
-    budgetUsed = 0.0;
+    _loadBudget(); // Fetch budget from backend
   }
 
-  // Compute Remaining Budget Dynamically
+  // Fetch budget from API
+  void _loadBudget() async {
+    final fetchedBudget = await ExpenseService.fetchMonthlyBudget();
+    setState(() {
+      monthlyBudget = fetchedBudget;
+    });
+  }
+
+  // Compute Remaining Budget
   double get remainingBudget => MathService.calculateRemainingBudget(monthlyBudget, budgetUsed);
 
-  // Compute Average Daily Budget Dynamically
+  // Compute Average Daily Budget
   double get avgDailyBudget => MathService.calculateAverageDailyBudget(remainingBudget);
 
   @override
@@ -96,7 +104,8 @@ class _HomeState extends State<Home> {
                     );
                     if (result != null && result.isNotEmpty) {
                       setState(() {
-                        monthlyBudget = double.tryParse(result) ?? 0.0; // Ensure a valid double
+                        monthlyBudget = double.tryParse(result) ?? 0.0;
+                        ExpenseService.updateMonthlyBudget(monthlyBudget);
                       });
                     }
                   }),
