@@ -185,4 +185,23 @@ class ExpenseService {
     }
   }
 
+// Fetch Monthly Spending 
+  static Future<double> fetchMonthlySpending() async {
+  try {
+    final headers = await AuthService.getAuthHeaders();
+    final response = await http.get(Uri.parse("$baseUrl/monthly-spending"), headers: headers);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return (data["totalSpendingThisMonth"] as num).toDouble(); // ✅ Ensure it's a double
+    } else {
+      throw Exception("Failed to fetch monthly spending");
+    }
+  } catch (error) {
+    print("Error fetching monthly spending: $error");
+    return 0.0;
+  }
+}
+
+
 }

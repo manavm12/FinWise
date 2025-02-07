@@ -9,18 +9,18 @@ class MathService {
     return total.toStringAsFixed(2); 
   }
 
-  static double calculateRemainingBudget(double monthlyBudget, double budgetUsed) {
-    return (monthlyBudget - budgetUsed).clamp(0, double.infinity); // Ensures no negative values
+  static double calculateRemainingBudget(double monthlyBudget, double totalSpending) {
+    return (monthlyBudget - totalSpending).clamp(0, double.infinity); // ✅ Prevent negative values
   }
 
-  /// Calculates the average daily budget based on the remaining budget and days left in the month.
   static double calculateAverageDailyBudget(double remainingBudget) {
     DateTime now = DateTime.now();
-    int daysLeft = DateTime(now.year, now.month + 1, 0).day - now.day; // Days left in the current month
+    int totalDays = DateTime(now.year, now.month + 1, 0).day; // Days in the month
+    int remainingDays = totalDays - now.day; // Days left in month
 
-    if (daysLeft <= 0) return remainingBudget; // Avoid division by zero
+    if (remainingDays <= 0) return remainingBudget; // ✅ Avoid division by zero
 
-    return remainingBudget / daysLeft;
+    return remainingBudget / remainingDays;
   }
 
     double calculateMean(List<double> data) {
@@ -37,5 +37,7 @@ class MathService {
     if (data.isEmpty) return 0.0;
     return data.reduce((a, b) => a > b ? a : b);
   }
+
+  
   
 }

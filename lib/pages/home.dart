@@ -17,8 +17,8 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   late String formattedDate;
   double monthlyBudget = 0.0;
-  double budgetUsed = 0.0;
   int selectedIndex = 0;
+  double totalSpendingThisMonth = 0.0;
 
   @override
   void initState() {
@@ -26,6 +26,14 @@ class _HomeState extends State<Home> {
     DateTime now = DateTime.now();
     formattedDate = DateFormat('d MMMM').format(now);
     _loadBudget(); // Fetch budget from backend
+    _loadMonthlySpending();
+  }
+
+  void _loadMonthlySpending() async {
+    double fetchedSpending = await ExpenseService.fetchMonthlySpending();
+    setState(() {
+      totalSpendingThisMonth = fetchedSpending;
+    });
   }
 
   // Fetch budget from API
@@ -37,7 +45,7 @@ class _HomeState extends State<Home> {
   }
 
   // Compute Remaining Budget
-  double get remainingBudget => MathService.calculateRemainingBudget(monthlyBudget, budgetUsed);
+  double get remainingBudget => MathService.calculateRemainingBudget(monthlyBudget, totalSpendingThisMonth);
 
   // Compute Average Daily Budget
   double get avgDailyBudget => MathService.calculateAverageDailyBudget(remainingBudget);
