@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 class ExpenseItem extends StatelessWidget {
+  final String id;
   final String description;
   final String category;
   final String amount;
 
   const ExpenseItem({
+    required this.id,
     required this.description,
     required this.amount,
     required this.category,
@@ -40,7 +42,7 @@ class ExpenseItem extends StatelessWidget {
             ],
           ),
           Text(
-            '\$$amount',
+            '\$${double.parse(amount).toStringAsFixed(2)}', // ✅ Ensure 2 decimal places
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

@@ -29,8 +29,9 @@ class _ExpensePageState extends State<ExpensePage> {
     setState(() {
       expenseList = fetchedExpenses.map((expense) {
         return ExpenseItem(
+          id: expense["_id"], 
           description: expense["description"],
-          amount: expense["amount"].toStringAsFixed(2),
+          amount: double.parse(expense["amount"].toString()).toStringAsFixed(2),
           category: expense["category"],
         );
       }).toList();
@@ -51,28 +52,75 @@ class _ExpensePageState extends State<ExpensePage> {
       repeatedExpenseData[index]["isActive"] = isActive;
     });
 
-    // Update the backend
     await ExpenseService.toggleRepeatedExpense(index);
 
     if (isActive) {
-      // Add the repeated expense to today's spending list
+      // Add the repeated expense to today's spending
+      final expense = repeatedExpenseData[index];
+      final newExpense = ExpenseItem(
+        id: "", 
+        description: expense["description"],
+        amount: double.parse(expense["amount"].toString()).toStringAsFixed(2),
+        category: expense["category"],
+      );
+
       setState(() {
-        expenseList.add(
-          ExpenseItem(
-            description: repeatedExpenseData[index]["description"],
-            amount: repeatedExpenseData[index]["amount"].toString(),
-            category: repeatedExpenseData[index]["category"],
-          ),
-        );
+        expenseList.add(newExpense);
       });
+
+      await ExpenseService.addExpense(
+        expense["description"], 
+        expense["category"], 
+        double.parse(expense["amount"].toString()) // ✅ Always convert to String before parsing
+      );
+
+      _loadExpenses(); // Refresh expenses list
     } else {
       // Remove from today's spending if unchecked
       setState(() {
-        expenseList.removeWhere(
-          (expense) => expense.description == repeatedExpenseData[index]["description"]
-        );
+        expenseList.removeWhere((expense) => expense.description == repeatedExpenseData[index]["description"]);
       });
     }
+  }
+
+  // Delete an expense
+  void _deleteExpense(String expenseId, int index) async {
+    await ExpenseService.deleteExpense(expenseId);
+    setState(() {
+      expenseList.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text("Expense deleted"),
+        action: SnackBarAction(
+          label: "Undo",
+          onPressed: () {
+            // TODO: Implement undo feature
+          },
+        ),
+      ),
+    );
+  }
+
+  // Delete a repeated expense
+  void _deleteRepeatedExpense(int index) async {
+    await ExpenseService.deleteRepeatedExpense(index);
+    setState(() {
+      repeatedExpenseData.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text("Repeated Expense deleted"),
+        action: SnackBarAction(
+          label: "Undo",
+          onPressed: () {
+            // TODO: Implement undo feature
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -97,10 +145,45 @@ class _ExpensePageState extends State<ExpensePage> {
               child: ListView.builder(
                 itemCount: expenseList.length,
                 itemBuilder: (context, index) {
-                  return ExpenseItem(
-                    description: expenseList[index].description,
-                    amount: double.parse(expenseList[index].amount).toStringAsFixed(2), // ✅ 2dp fix
-                    category: expenseList[index].category,
+                  return Dismissible(
+                    key: Key(expenseList[index].id), 
+                    direction: DismissDirection.endToStart, 
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      color: Colors.red,
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                    confirmDismiss: (direction) async {
+                      return await showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text("Delete Expense"),
+                            content: const Text("Are you sure you want to delete this expense?"),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: const Text("Cancel"),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    onDismissed: (direction) {
+                      _deleteExpense(expenseList[index].id, index);
+                    },
+                    child: ExpenseItem(
+                      id: expenseList[index].id,
+                      description: expenseList[index].description,
+                      amount: expenseList[index].amount,
+                      category: expenseList[index].category,
+                    ),
                   );
                 },
               ),
@@ -132,12 +215,46 @@ class _ExpensePageState extends State<ExpensePage> {
                 child: ListView.builder(
                   itemCount: repeatedExpenseData.length,
                   itemBuilder: (context, index) {
-                    return RepeatedExpenseItem(
-                      description: repeatedExpenseData[index]["description"],
-                      amount: double.parse(repeatedExpenseData[index]["amount"].toString()).toStringAsFixed(2),
-                      category: repeatedExpenseData[index]["category"],
-                      isActive: repeatedExpenseData[index]["isActive"],
-                      onToggleActive: (bool isActive) => addExpenseFromRepeated(index, isActive),
+                    return Dismissible(
+                      key: Key(repeatedExpenseData[index]["description"]), 
+                      direction: DismissDirection.endToStart, 
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        color: Colors.red,
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      confirmDismiss: (direction) async {
+                        return await showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text("Delete Repeated Expense"),
+                              content: const Text("Are you sure you want to remove this repeated expense?"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text("Cancel"),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(true),
+                                  child: const Text("Delete", style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      onDismissed: (direction) async {
+                        _deleteRepeatedExpense(index);
+                      },
+                      child: RepeatedExpenseItem(
+                        description: repeatedExpenseData[index]["description"],
+                        amount: double.parse(repeatedExpenseData[index]["amount"].toString()).toStringAsFixed(2),
+                        category: repeatedExpenseData[index]["category"],
+                        isActive: repeatedExpenseData[index]["isActive"],
+                        onToggleActive: (bool isActive) => addExpenseFromRepeated(index, isActive),
+                      ),
                     );
                   },
                 ),
@@ -154,37 +271,14 @@ class _ExpensePageState extends State<ExpensePage> {
           );
 
           if (result != null) {
-            final String roundedAmount = double.parse(result["amount"]).toStringAsFixed(2);
+            await ExpenseService.addExpense(result["description"], result["category"], double.parse(result["amount"]));
 
-            // Send expense to backend
-            final newExpense = await ExpenseService.addExpense(
-              result["description"],
-              result["category"],
-              double.parse(result["amount"]),
-            );
-
-            if (newExpense != null) {
-              setState(() {
-                expenseList.add(
-                  ExpenseItem(
-                    description: result["description"],
-                    amount: roundedAmount,
-                    category: result["category"],
-                  ),
-                );
-              });
-
-              if (result["isRepeatedExpense"]) {
-                // Save repeated expense to MongoDB
-                await ExpenseService.addRepeatedExpense(
-                  result["description"],
-                  result["category"],
-                  double.parse(result["amount"]),
-                );
-                
-                _loadRepeatedExpenses(); // Refresh UI
-              }
+            if (result["isRepeatedExpense"]) {
+              await ExpenseService.addRepeatedExpense(result["description"], result["category"], double.parse(result["amount"]));
+              _loadRepeatedExpenses(); // ✅ Ensure repeated expenses refresh after adding one
             }
+
+            _loadExpenses(); // ✅ Refresh expense list after adding one
           }
         },
         backgroundColor: Colors.blue,

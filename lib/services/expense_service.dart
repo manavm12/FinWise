@@ -142,4 +142,38 @@ class ExpenseService {
       print("Error updating monthly budget: $error");
     }
   }
+
+    static Future<void> deleteExpense(String expenseId) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final response = await http.delete(
+        Uri.parse("http://10.0.2.2:3000/api/expenses/delete/$expenseId"),
+        headers: headers,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception("Failed to delete expense");
+      }
+    } catch (error) {
+      print("Error deleting expense: $error");
+    }
+  }
+
+  // Delete a repeated expense
+  static Future<void> deleteRepeatedExpense(int index) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      final response = await http.delete(
+        Uri.parse("http://10.0.2.2:3000/api/users/delete-repeated-expense/$index"),
+        headers: headers,
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception("Failed to delete repeated expense");
+      }
+    } catch (error) {
+      print("Error deleting repeated expense: $error");
+    }
+  }
+
 }
