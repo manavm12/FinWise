@@ -1,27 +1,36 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_services.dart';
+import 'package:intl/intl.dart';
 
 class ExpenseService {
   static const String baseUrl = "http://10.0.2.2:3000/api/expenses";
   static const String userBaseUrl = "http://10.0.2.2:3000/api/users";
 
   // Fetch all expenses for the logged-in user
-  static Future<List<Map<String, dynamic>>> fetchExpenses() async {
-    try {
-      final headers = await AuthService.getAuthHeaders();
-      final response = await http.get(Uri.parse("$baseUrl/"), headers: headers);
+  static Future<List<Map<String, dynamic>>> fetchExpenses({DateTime? dateFilter}) async {
+  try {
+    final headers = await AuthService.getAuthHeaders();
+    
+    // Format the date correctly for the backend
+    String url = dateFilter != null
+        ? "$baseUrl/by-date/${DateFormat('yyyy-MM-dd').format(dateFilter)}" // ✅ Ensures matching format
+        : "$baseUrl/";
 
-      if (response.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
-      } else {
-        throw Exception("Failed to fetch expenses");
-      }
-    } catch (error) {
-      print("Error fetching expenses: $error");
-      return [];
+    final response = await http.get(Uri.parse(url), headers: headers);
+
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+    } else {
+      throw Exception("Failed to fetch expenses");
     }
+  } catch (error) {
+    print("Error fetching expenses: $error");
+    return [];
   }
+}
+
+
 
   // Add a new expense
   static Future<Map<String, dynamic>?> addExpense(String description, String category, double amount) async {

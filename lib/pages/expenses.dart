@@ -4,6 +4,7 @@ import 'package:finwise/widgets/addExpenseDialog.dart';
 import 'package:finwise/classes/expenseItem.dart';
 import 'package:finwise/classes/repeatedExpenseItem.dart';
 import 'package:finwise/services/mathServices.dart';
+import 'package:intl/intl.dart';
 
 class ExpensePage extends StatefulWidget {
   const ExpensePage({super.key});
@@ -15,6 +16,7 @@ class ExpensePage extends StatefulWidget {
 class _ExpensePageState extends State<ExpensePage> {
   List<ExpenseItem> expenseList = [];
   List<Map<String, dynamic>> repeatedExpenseData = [];
+  DateTime selectedDate = DateTime.now();
 
   @override
   void initState() {
@@ -23,20 +25,23 @@ class _ExpensePageState extends State<ExpensePage> {
     _loadRepeatedExpenses(); // Fetch repeated expenses
   }
 
+  String get formattedDate => DateFormat('d MMMM').format(selectedDate);
+
+
   // Fetch expenses from the backend
   void _loadExpenses() async {
-    final fetchedExpenses = await ExpenseService.fetchExpenses();
-    setState(() {
-      expenseList = fetchedExpenses.map((expense) {
-        return ExpenseItem(
-          id: expense["_id"], 
-          description: expense["description"],
-          amount: double.parse(expense["amount"].toString()).toStringAsFixed(2),
-          category: expense["category"],
-        );
-      }).toList();
-    });
-  }
+  final fetchedExpenses = await ExpenseService.fetchExpenses(dateFilter: selectedDate);
+  setState(() {
+    expenseList = fetchedExpenses.map((expense) {
+      return ExpenseItem(
+        id: expense["_id"], 
+        description: expense["description"],
+        amount: double.parse(expense["amount"].toString()).toStringAsFixed(2),
+        category: expense["category"],
+      );
+    }).toList();
+  });
+}
 
   // Fetch repeated expenses from the backend
   void _loadRepeatedExpenses() async {
@@ -46,42 +51,68 @@ class _ExpensePageState extends State<ExpensePage> {
     });
   }
 
+  void _previousDay() {
+    setState(() {
+      selectedDate = selectedDate.subtract(const Duration(days: 1));
+    });
+    _loadExpenses();
+  }
+
+  void _nextDay() {
+    if (selectedDate.isBefore(DateTime.now())) {
+      setState(() {
+        selectedDate = selectedDate.add(const Duration(days: 1));
+      });
+      _loadExpenses();
+    }
+  }
+
+  Future<void> _selectDate() async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2000), // Set a reasonable past limit
+      lastDate: DateTime.now(),  // Prevent selection of future dates
+    );
+
+    if (pickedDate != null && pickedDate != selectedDate) {
+      setState(() {
+        selectedDate = pickedDate;
+      });
+      _loadExpenses();
+    }
+  }
+
   // Toggle a repeated expense's active state
   void addExpenseFromRepeated(int index, bool isActive) async {
+  try {
+    await ExpenseService.toggleRepeatedExpense(index);
+
     setState(() {
       repeatedExpenseData[index]["isActive"] = isActive;
     });
 
-    await ExpenseService.toggleRepeatedExpense(index);
-
     if (isActive) {
-      // Add the repeated expense to today's spending
       final expense = repeatedExpenseData[index];
-      final newExpense = ExpenseItem(
-        id: "", 
-        description: expense["description"],
-        amount: double.parse(expense["amount"].toString()).toStringAsFixed(2),
-        category: expense["category"],
-      );
 
-      setState(() {
-        expenseList.add(newExpense);
-      });
+      // Ensure amount is safely converted to double
+      double amount = (expense["amount"] is int)
+          ? expense["amount"].toDouble() // Convert int to double
+          : double.parse(expense["amount"].toString()); // Parse String safely
 
-      await ExpenseService.addExpense(
-        expense["description"], 
-        expense["category"], 
-        double.parse(expense["amount"].toString()) // ✅ Always convert to String before parsing
-      );
-
-      _loadExpenses(); // Refresh expenses list
-    } else {
-      // Remove from today's spending if unchecked
-      setState(() {
-        expenseList.removeWhere((expense) => expense.description == repeatedExpenseData[index]["description"]);
-      });
+      // ✅ Send expense to the database instead of manually adding to the list
+      await ExpenseService.addExpense(expense["description"], expense["category"], amount);
     }
+
+    // ✅ Refresh the expenses list after any toggle to prevent duplicates
+    _loadExpenses();
+
+  } catch (e) {
+    print("Error toggling repeated expense: $e");
   }
+}
+
+
 
   // Delete an expense
   void _deleteExpense(String expenseId, int index) async {
@@ -135,9 +166,31 @@ class _ExpensePageState extends State<ExpensePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Today's Spending",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_left, size: 30),
+                  onPressed: _previousDay,
+                ),
+                GestureDetector(
+                  onTap: _selectDate,
+                  child: Row(
+                    children: [
+                      Text(
+                        formattedDate,
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.calendar_today, size: 20, color: Colors.blue),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_right, size: 30),
+                  onPressed: _nextDay,
+                ),
+              ],
             ),
             const SizedBox(height: 10),
             Expanded(
