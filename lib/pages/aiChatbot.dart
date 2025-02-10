@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown/flutter_markdown.dart'; // For rendering markdown
 import 'package:finwise/services/expense_service.dart';
 
 class AIChatBot extends StatefulWidget {
@@ -11,9 +11,34 @@ class AIChatBot extends StatefulWidget {
 
 class _AIChatBotState extends State<AIChatBot> {
   final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController(); // Scroll controller for automatic scrolling
-  List<Map<String, String>> messages = [];
+  final ScrollController _scrollController = ScrollController();
+  List<Map<String, String>> messages = []; // Stores user & AI messages
   bool isLoading = false;
+
+  @override
+void initState() {
+  super.initState();
+  _loadChatHistory(); // Fetch chat history when the screen opens
+}
+
+void _loadChatHistory() async {
+  List<Map<String, dynamic>> history = await ExpenseService.fetchChatHistory();
+  setState(() {
+    messages = history.expand((chat) => [
+      {
+        "sender": "user",
+        "message": (chat["query"] ?? "").toString(), 
+      },
+      {
+        "sender": "ai",
+        "message": (chat["response"] ?? "").toString(),  
+      }
+    ]).toList();
+  });
+
+
+  _scrollToBottom();
+}
 
   // Function to send user query to backend AI
   void _sendMessage() async {
@@ -26,7 +51,6 @@ class _AIChatBotState extends State<AIChatBot> {
       isLoading = true;
     });
 
-    // Scroll to the bottom after sending the message
     _scrollToBottom();
 
     // Send request to backend
@@ -37,11 +61,13 @@ class _AIChatBotState extends State<AIChatBot> {
       isLoading = false;
     });
 
-    // Scroll to the bottom after receiving the response
     _scrollToBottom();
+
+    // Save chat to backend
+    await ExpenseService.saveChat(userMessage, aiResponse);
   }
 
-  // Function to scroll to the bottom of the list
+  // Function to scroll to the bottom of the chat
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 300), () {
       _scrollController.animateTo(
@@ -75,9 +101,6 @@ class _AIChatBotState extends State<AIChatBot> {
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     padding: const EdgeInsets.all(16),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
                     decoration: BoxDecoration(
                       color: isUser ? Colors.blue[200] : Colors.grey[100],
                       borderRadius: BorderRadius.only(
@@ -102,29 +125,10 @@ class _AIChatBotState extends State<AIChatBot> {
                         : MarkdownBody(
                             data: msg["message"]!,
                             styleSheet: MarkdownStyleSheet(
-                              h1: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                height: 1.8,
-                              ),
-                              p: const TextStyle(
-                                fontSize: 16,
-                                height: 1.6,
-                              ),
-                              strong: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                              listBullet: const TextStyle(
-                                fontSize: 16,
-                                height: 1.6,
-                              ),
-                              blockquote: const TextStyle(
-                                fontSize: 16,
-                                fontStyle: FontStyle.italic,
-                                color: Colors.grey,
-                                height: 1.6,
-                              ),
+                              h1: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              p: const TextStyle(fontSize: 16),
+                              strong: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                              listBullet: const TextStyle(fontSize: 16),
                             ),
                           ),
                   ),

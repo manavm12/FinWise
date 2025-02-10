@@ -6,7 +6,8 @@ import 'package:intl/intl.dart';
 class ExpenseService {
   static const String baseUrl = "http://10.0.2.2:3000/api/expenses";
   static const String userBaseUrl = "http://10.0.2.2:3000/api/users";
-  static const String chatBaseurl = "http://10.0.2.2:3000/api/ai";
+  static const String chatBoturl = "http://10.0.2.2:3000/api/ai";
+  static const String chatHistoryurl = "http://10.0.2.2:3000/api/chat";
 
   // Fetch all expenses for the logged-in user
   static Future<List<Map<String, dynamic>>> fetchExpenses({DateTime? dateFilter}) async {
@@ -219,7 +220,7 @@ class ExpenseService {
 
         // Send POST request to backend
         final response = await http.post(
-          Uri.parse("$chatBaseurl/analyze-spending"),
+          Uri.parse("$chatBoturl/analyze-spending"),
           headers: headers,
           body: jsonEncode({"query": userMessage}), // Ensure proper JSON encoding
         );
@@ -242,7 +243,47 @@ class ExpenseService {
       }
     }
 
+    static Future<void> saveChat(String userQuery, String aiResponse) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
 
+      final response = await http.post(
+        Uri.parse("$chatHistoryurl/save"),
+        headers: headers,
+        body: jsonEncode({
+          "userQuery": userQuery,
+          "aiResponse": aiResponse,
+        }),
+      );
 
+      if (response.statusCode != 201) {
+        print("Error saving chat: ${response.body}");
+      }
+    } catch (error) {
+      print("Error in saveChat: $error");
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchChatHistory() async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
+
+      final response = await http.get(
+        Uri.parse("$chatHistoryurl/history"),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        print("Error fetching chat history: ${response.body}");
+        return [];
+      }
+    } catch (error) {
+      print("Error in fetchChatHistory: $error");
+      return [];
+    }
+  }
 
 }
