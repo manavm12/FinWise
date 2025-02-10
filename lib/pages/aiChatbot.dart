@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart'; // For rendering markdown
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:finwise/services/expense_service.dart';
 
 class AIChatBot extends StatefulWidget {
@@ -12,62 +12,86 @@ class AIChatBot extends StatefulWidget {
 class _AIChatBotState extends State<AIChatBot> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  List<Map<String, String>> messages = []; // Stores user & AI messages
+  List<Map<String, String>> messages = [];
+  List<Map<String, dynamic>> chatSessions = [];
+  String? currentSessionId;
   bool isLoading = false;
 
   @override
-void initState() {
-  super.initState();
-  _loadChatHistory(); // Fetch chat history when the screen opens
-}
-
-void _loadChatHistory() async {
-  List<Map<String, dynamic>> history = await ExpenseService.fetchChatHistory();
-  setState(() {
-    messages = history.expand((chat) => [
-      {
-        "sender": "user",
-        "message": (chat["query"] ?? "").toString(), 
-      },
-      {
-        "sender": "ai",
-        "message": (chat["response"] ?? "").toString(),  
-      }
-    ]).toList();
-  });
-
-
-  _scrollToBottom();
-}
-
-  // Function to send user query to backend AI
-  void _sendMessage() async {
-    if (_messageController.text.isEmpty) return;
-
-    String userMessage = _messageController.text.trim();
-    setState(() {
-      messages.add({"sender": "user", "message": userMessage});
-      _messageController.clear();
-      isLoading = true;
-    });
-
-    _scrollToBottom();
-
-    // Send request to backend
-    String aiResponse = await ExpenseService.sendAIQuery(userMessage);
-
-    setState(() {
-      messages.add({"sender": "ai", "message": aiResponse});
-      isLoading = false;
-    });
-
-    _scrollToBottom();
-
-    // Save chat to backend
-    await ExpenseService.saveChat(userMessage, aiResponse);
+  void initState() {
+    super.initState();
+    _startNewChat();
+    _loadChatSessions(); // Fetch all sessions when chatbot opens
   }
 
-  // Function to scroll to the bottom of the chat
+  //  Fetch all chat sessions from backend
+  void _loadChatSessions() async {
+    List<Map<String, dynamic>> sessions = await ExpenseService.fetchChatSessions();
+    
+    setState(() {
+      chatSessions = sessions;
+    });
+
+  }
+
+  // Fetch chat history by session ID
+  void _loadChatHistoryBySession(String sessionId) async {
+    List<Map<String, dynamic>> history = await ExpenseService.fetchChatHistoryBySession(sessionId);
+
+    setState(() {
+      currentSessionId = sessionId;
+      messages = history.expand((chat) => [
+        {"sender": "user", "message": (chat["query"] ?? "").toString()},
+        {"sender": "ai", "message": (chat["response"] ?? "").toString()},
+      ]).toList();
+    });
+
+    _scrollToBottom();
+  }
+
+  // Start a new chat session
+  void _startNewChat() {
+    setState(() {
+      currentSessionId = null;
+      messages.clear();
+    });
+  }
+
+  // Send a user message and fetch AI response
+  void _sendMessage() async {
+  if (_messageController.text.isEmpty) return;
+
+  String userMessage = _messageController.text.trim();
+  setState(() {
+    messages.add({"sender": "user", "message": userMessage});
+    _messageController.clear();
+    isLoading = true;
+  });
+
+  _scrollToBottom();
+
+  // Fetch AI response
+  String aiResponse = await ExpenseService.sendAIQuery(userMessage);
+
+  setState(() {
+    messages.add({"sender": "ai", "message": aiResponse});
+    isLoading = false;
+  });
+
+  _scrollToBottom();
+
+  // Ensure session exists or create a new one
+  if (currentSessionId == null) {
+    currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
+    await ExpenseService.saveChat(currentSessionId!, userMessage, aiResponse);
+    _loadChatSessions(); // Only refresh session list when a new session is created
+  } else {
+    await ExpenseService.saveChat(currentSessionId!, userMessage, aiResponse);
+  }
+}
+
+
+  // 📌 Scroll to bottom
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 300), () {
       _scrollController.animateTo(
@@ -81,13 +105,60 @@ void _loadChatHistory() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // ✅ Drawer to show chat history
+      drawer: Drawer(
+        child: Column(
+          children: [
+            const DrawerHeader(
+              child: Text(
+                "Chat History",
+                style: TextStyle(fontSize: 20, color: Colors.blue),
+              ),
+            ),
+            Expanded(
+              child: chatSessions.isEmpty
+                  ? const Center(child: Text("No chat sessions available."))
+                  : ListView.builder(
+                      itemCount: chatSessions.length,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text(chatSessions[index]["sessionName"] ?? "Chat ${index + 1}"),
+                          onTap: () {
+                            _loadChatHistoryBySession(chatSessions[index]["_id"]);
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+
       appBar: AppBar(
         title: const Text("AI Expense Advisor"),
         centerTitle: true,
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _startNewChat, // ✅ Start new chat button
+          ),
+        ],
       ),
+
+      // 📌 Chat Messages Display
       body: Column(
         children: [
-          // Chat Messages Display
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -143,7 +214,7 @@ void _loadChatHistory() async {
               child: CircularProgressIndicator(),
             ),
 
-          // Input Field + Send Button
+          // 📌 Input Field + Send Button
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -171,7 +242,7 @@ void _loadChatHistory() async {
         ],
       ),
 
-      // Bottom Navigation Bar
+      // 📌 Bottom Navigation Bar
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 2,
         onTap: (index) {

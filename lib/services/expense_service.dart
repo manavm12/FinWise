@@ -243,17 +243,51 @@ class ExpenseService {
       }
     }
 
-    static Future<void> saveChat(String userQuery, String aiResponse) async {
+    static Future<List<Map<String, dynamic>>> fetchChatSessions() async {
+      try {
+        final headers = await AuthService.getAuthHeaders();
+        final response = await http.get(Uri.parse("$chatHistoryurl/sessions"), headers: headers);
+
+        if (response.statusCode == 200) {
+          return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+        } else {
+          print("Error fetching chat sessions: ${response.body}");
+          return [];
+        }
+      } catch (error) {
+        print("Error in fetchChatSessions: $error");
+        return [];
+      }
+    }
+
+
+  static Future<List<Map<String, dynamic>>> fetchChatHistoryBySession(String sessionId) async {
     try {
       final headers = await AuthService.getAuthHeaders();
-      headers['Content-Type'] = 'application/json';
+      final response = await http.get(Uri.parse("$chatHistoryurl/session/$sessionId"), headers: headers);
 
+      if (response.statusCode == 200) {
+        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+      } else {
+        print("Error fetching chat history: ${response.body}");
+        return [];
+      }
+    } catch (error) {
+      print("Error in fetchChatHistoryBySession: $error");
+      return [];
+    }
+  }
+
+  static Future<void> saveChat(String sessionId, String userQuery, String aiResponse) async {
+    try {
+      final headers = await AuthService.getAuthHeaders();
       final response = await http.post(
         Uri.parse("$chatHistoryurl/save"),
         headers: headers,
         body: jsonEncode({
-          "userQuery": userQuery,
-          "aiResponse": aiResponse,
+          "sessionId": sessionId,
+          "query": userQuery,
+          "response": aiResponse,
         }),
       );
 
@@ -265,25 +299,5 @@ class ExpenseService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> fetchChatHistory() async {
-    try {
-      final headers = await AuthService.getAuthHeaders();
-
-      final response = await http.get(
-        Uri.parse("$chatHistoryurl/history"),
-        headers: headers,
-      );
-
-      if (response.statusCode == 200) {
-        return List<Map<String, dynamic>>.from(jsonDecode(response.body));
-      } else {
-        print("Error fetching chat history: ${response.body}");
-        return [];
-      }
-    } catch (error) {
-      print("Error in fetchChatHistory: $error");
-      return [];
-    }
-  }
 
 }
