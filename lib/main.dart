@@ -1,3 +1,4 @@
+import 'package:finwise/pages/aiChatbot.dart';
 import 'package:finwise/pages/expenses.dart';
 import 'package:finwise/pages/home.dart';
 import 'package:finwise/pages/login.dart';
@@ -11,7 +12,8 @@ void main() {
       '/home': (context)=>Home(),
       '/expenses': (context)=>ExpensePage(),
       '/login': (context)=>LoginScreen(),
-      '/register':(context)=>RegisterScreen()
+      '/register':(context)=>RegisterScreen(),
+      '/chatbot':(context)=>AIChatBot()
     }
   ));
 }

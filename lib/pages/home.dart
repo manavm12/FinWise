@@ -149,13 +149,7 @@ class _HomeState extends State<Home> {
           if (index == 1) {
             Navigator.pushReplacementNamed(context, '/expenses');
           } else if (index == 2) {
-            Navigator.push(context, MaterialPageRoute(builder: (context)=>StatisticsPage(
-                      monthlyBudget: monthlyBudget, 
-                      totalSpendingThisMonth: totalSpendingThisMonth,
-                      remainingBudget: remainingBudget, 
-                      avgDailyBudget: avgDailyBudget, 
-                      lowestSpending: lowestSpending,
-                      highestSpending: highestSpending)));
+            Navigator.pushReplacementNamed(context, '/chatbot');
           }
         },
         items: const [
@@ -168,8 +162,8 @@ class _HomeState extends State<Home> {
             label: "Expense",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: "Statistics",
+            icon: Icon(Icons.chat),
+            label: "ChatBot",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

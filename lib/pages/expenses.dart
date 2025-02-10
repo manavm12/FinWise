@@ -342,12 +342,14 @@ class _ExpensePageState extends State<ExpensePage> {
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacementNamed(context, '/home');
+          } else if (index == 2) {
+            Navigator.pushReplacementNamed(context, '/chatbot');
           }
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.receipt), label: "Expense"),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Statistics"),
+          BottomNavigationBarItem(icon: Icon(Icons.chat), label: "ChatBot"),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"),
         ],
         selectedItemColor: Colors.blue,

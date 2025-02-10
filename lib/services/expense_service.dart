@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 class ExpenseService {
   static const String baseUrl = "http://10.0.2.2:3000/api/expenses";
   static const String userBaseUrl = "http://10.0.2.2:3000/api/users";
+  static const String chatBaseurl = "http://10.0.2.2:3000/api/ai";
 
   // Fetch all expenses for the logged-in user
   static Future<List<Map<String, dynamic>>> fetchExpenses({DateTime? dateFilter}) async {
@@ -210,6 +211,37 @@ class ExpenseService {
         };
       }
     }
+
+    static Future<String> sendAIQuery(String userMessage) async {
+      try {
+        final headers = await AuthService.getAuthHeaders();
+        headers['Content-Type'] = 'application/json'; // Ensure Content-Type is set
+
+        // Send POST request to backend
+        final response = await http.post(
+          Uri.parse("$chatBaseurl/analyze-spending"),
+          headers: headers,
+          body: jsonEncode({"query": userMessage}), // Ensure proper JSON encoding
+        );
+
+        // Log the response for debugging
+        print("Response Status Code: ${response.statusCode}");
+        print("Response Body: ${response.body}");
+
+        // Handle the response
+        if (response.statusCode == 200) {
+          final responseData = jsonDecode(response.body);
+          return responseData["response"] ?? "I couldn't analyze your spending."; // ✅ Corrected key to 'response'
+        } else {
+          print("Error: ${response.body}");
+          return "I encountered an error while analyzing your spending.";
+        }
+      } catch (error) {
+        print("Error in sendAIQuery: $error");
+        return "I encountered an error while analyzing your spending.";
+      }
+    }
+
 
 
 
