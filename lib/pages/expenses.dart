@@ -347,7 +347,7 @@ class _ExpensePageState extends State<ExpensePage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.receipt), label: "Expense"),
-          BottomNavigationBarItem(icon: Icon(Icons.collections), label: "Collections"),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: "Statistics"),
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: "Settings"),
         ],
         selectedItemColor: Colors.blue,

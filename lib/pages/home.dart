@@ -19,6 +19,8 @@ class _HomeState extends State<Home> {
   double monthlyBudget = 0.0;
   int selectedIndex = 0;
   double totalSpendingThisMonth = 0.0;
+  double lowestSpending = 0.0;
+  double highestSpending = 0.0;
 
   @override
   void initState() {
@@ -30,11 +32,15 @@ class _HomeState extends State<Home> {
   }
 
   void _loadMonthlySpending() async {
-    double fetchedSpending = await ExpenseService.fetchMonthlySpending();
-    setState(() {
-      totalSpendingThisMonth = fetchedSpending;
-    });
-  }
+  Map<String, double> fetchedData = await ExpenseService.fetchMonthlySpending();
+  
+  setState(() {
+    totalSpendingThisMonth = fetchedData["totalSpendingThisMonth"] ?? 0.0;
+    lowestSpending = fetchedData["lowestSpending"] ?? 0.0;
+    highestSpending = fetchedData["highestSpending"] ?? 0.0;
+  });
+}
+
 
   // Fetch budget from API
   void _loadBudget() async {
@@ -81,7 +87,7 @@ class _HomeState extends State<Home> {
             const SizedBox(height: 16),
             // Graph placeholder
             Container(
-              height: 150,
+              height: 250,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
@@ -120,9 +126,11 @@ class _HomeState extends State<Home> {
                   FeatureButton(Icons.analytics, "Statistics", () {
                     Navigator.push(context, MaterialPageRoute(builder: (context)=>StatisticsPage(
                       monthlyBudget: monthlyBudget, 
+                      totalSpendingThisMonth: totalSpendingThisMonth,
                       remainingBudget: remainingBudget, 
                       avgDailyBudget: avgDailyBudget, 
-                      spendingData: [12,13,14,15,16])));
+                      lowestSpending: lowestSpending,
+                      highestSpending: highestSpending)));
                   }),
                   FeatureButton(Icons.access_time, "History", () {}),
                   FeatureButton(Icons.coffee_outlined, "Add Widgets", () {}),
@@ -140,6 +148,14 @@ class _HomeState extends State<Home> {
           print('Index tapped: $index');
           if (index == 1) {
             Navigator.pushReplacementNamed(context, '/expenses');
+          } else if (index == 2) {
+            Navigator.push(context, MaterialPageRoute(builder: (context)=>StatisticsPage(
+                      monthlyBudget: monthlyBudget, 
+                      totalSpendingThisMonth: totalSpendingThisMonth,
+                      remainingBudget: remainingBudget, 
+                      avgDailyBudget: avgDailyBudget, 
+                      lowestSpending: lowestSpending,
+                      highestSpending: highestSpending)));
           }
         },
         items: const [
@@ -152,8 +168,8 @@ class _HomeState extends State<Home> {
             label: "Expense",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.collections),
-            label: "Collections",
+            icon: Icon(Icons.bar_chart),
+            label: "Statistics",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

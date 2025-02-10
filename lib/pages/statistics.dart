@@ -4,15 +4,20 @@ import 'package:flutter/material.dart';
 
 class StatisticsPage extends StatelessWidget {
   final double monthlyBudget;
+  final double totalSpendingThisMonth;
   final double remainingBudget;
   final double avgDailyBudget;
-  final List<double> spendingData; // Daily spending data
+  final double lowestSpending;
+  final double highestSpending;
+
 
   const StatisticsPage({
     required this.monthlyBudget,
+    required this.totalSpendingThisMonth,
     required this.remainingBudget,
     required this.avgDailyBudget,
-    required this.spendingData,
+    required this.lowestSpending,
+    required this.highestSpending,
     Key? key,
   }) : super(key: key);
 
@@ -38,10 +43,11 @@ class StatisticsPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             buildStatisticRow("Monthly Budget", "\$${monthlyBudget.toStringAsFixed(2)}"),
+            buildStatisticRow("Total Spending", "\$${totalSpendingThisMonth.toStringAsFixed(2)}"),
             buildStatisticRow("Remaining Budget", "\$${remainingBudget.toStringAsFixed(2)}"),
-            buildStatisticRow("Mean Spend", "\$${MathService().calculateMean(spendingData).toStringAsFixed(2)}"),
-            buildStatisticRow("Lowest Spend", "\$${MathService().calculateLowest(spendingData).toStringAsFixed(2)}"),
-            buildStatisticRow("Highest Spend", "\$${MathService().calculateHighest(spendingData).toStringAsFixed(2)}"),
+            buildStatisticRow("Mean Spend", "\$${MathService().calculateMeanSpend(totalSpendingThisMonth).toStringAsFixed(2)}"),
+            buildStatisticRow("Lowest Spend", "\$${lowestSpending.toStringAsFixed(2)}"),
+            buildStatisticRow("Highest Spend", "\$${highestSpending.toStringAsFixed(2)}"),
             buildStatisticRow("Daily Budget", "\$${avgDailyBudget.toStringAsFixed(2)}"),
             const SizedBox(height: 16),
             const Text(

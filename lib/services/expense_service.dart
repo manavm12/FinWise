@@ -186,22 +186,31 @@ class ExpenseService {
   }
 
 // Fetch Monthly Spending 
-  static Future<double> fetchMonthlySpending() async {
-  try {
-    final headers = await AuthService.getAuthHeaders();
-    final response = await http.get(Uri.parse("$baseUrl/monthly-spending"), headers: headers);
+    static Future<Map<String, double>> fetchMonthlySpending() async {
+      try {
+        final headers = await AuthService.getAuthHeaders();
+        final response = await http.get(Uri.parse("$baseUrl/monthly-spending"), headers: headers);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return (data["totalSpendingThisMonth"] as num).toDouble(); // ✅ Ensure it's a double
-    } else {
-      throw Exception("Failed to fetch monthly spending");
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return {
+            "totalSpendingThisMonth": (data["totalSpendingThisMonth"] as num).toDouble(),
+            "lowestSpending": (data["lowestSpending"] as num).toDouble(),
+            "highestSpending": (data["highestSpending"] as num).toDouble(),
+          };
+        } else {
+          throw Exception("Failed to fetch monthly spending");
+        }
+      } catch (error) {
+        print("Error fetching monthly spending: $error");
+        return {
+          "totalSpendingThisMonth": 0.0,
+          "lowestSpending": 0.0,
+          "highestSpending": 0.0,
+        };
+      }
     }
-  } catch (error) {
-    print("Error fetching monthly spending: $error");
-    return 0.0;
-  }
-}
+
 
 
 }

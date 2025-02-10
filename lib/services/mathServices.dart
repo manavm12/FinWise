@@ -23,9 +23,9 @@ class MathService {
     return remainingBudget / remainingDays;
   }
 
-    double calculateMean(List<double> data) {
-    if (data.isEmpty) return 0.0;
-    return data.reduce((a, b) => a + b) / data.length;
+  double calculateMeanSpend(double totalSpendingThisMonth) {
+    DateTime now = DateTime.now();// Days in the month
+    return totalSpendingThisMonth / now.day;
   }
 
   double calculateLowest(List<double> data) {
